@@ -181,6 +181,100 @@ real_path = function(turnData){
 }
 
 #############################################################################################################
+# 1.4) calculating the real activity made by the rat
+
+real_activity = function(rpath,wd){
+
+  n = nrow(rpath)
+  ract = matrix(0,14,n-wd+1)
+  rownames(ract) = c("apA_1", "apA_0", "apA0B_1", "apA0B_0", "apA1B_1", "apA1B_0", "apA0B0C_1", "apA0B0C_0", "apA0B1C_1", "apA0B1C_0", "apA1B0C_1", "apA1B0C_0", "apA1B1C_1", "apA1B1C_0")
+  
+  for (i in 1:n){
+    if (i >= wd){
+      
+      apA_1 = 0
+      apA_0 = 0
+      apA0B_1 = 0
+      apA0B_0 = 0
+      apA1B_1 = 0
+      apA1B_0 = 0
+      apA0B0C_1 = 0
+      apA0B0C_0 = 0
+      apA0B1C_1 = 0
+      apA0B1C_0 = 0
+      apA1B0C_1 = 0
+      apA1B0C_0 = 0
+      apA1B1C_1 = 0
+      apA1B1C_0 = 0
+        
+      for(l in i-wd+1:wd){
+          
+        if (rpath[l,1] == 1){
+          apA_1 = apA_1 + 1
+      
+          if (rpath[l,2] == 1){
+            apA1B_1 = apA1B_1 + 1
+          
+            if (rpath[l,3] == 1){
+              apA1B1C_1 = apA1B1C_1 + 1
+            }else{
+              apA1B1C_0 = apA1B1C_0 + 1
+            }
+          }else{
+            apA1B_0 = apA1B_0 + 1
+          
+            if (rpath[l,3] == 1){
+              apA1B0C_1 = apA1B0C_1 + 1
+            }else{
+              apA1B0C_0 = apA1B0C_0 + 1
+            }
+          }
+        }else{
+          apA_0 = apA_0 + 1
+      
+          if (rpath[l,2] == 1){
+            apA0B_1 = apA0B_1 + 1
+          
+            if (rpath[l,3] == 1){
+              apA0B1C_1 = apA0B1C_1 + 1
+            }else{
+              apA0B1C_0 = apA0B1C_0 + 1
+            }
+          }else{
+            apA0B_0 = apA0B_0 + 1
+          
+            if (rpath[l,3] == 1){
+              apA0B0C_1 = apA0B0C_1 + 1
+            }else{
+              apA0B0C_0 = apA0B0C_0 + 1
+            }
+          }
+        }
+      }
+      
+      ract[1,i-wd+1] = act(apA_1,apA_0)
+      ract[2,i-wd+1] = act(apA_0,apA_1)
+    
+      ract[3,i-wd+1] = act(apA0B_1,apA0B_0)
+      ract[4,i-wd+1] = act(apA0B_0,apA0B_1)
+      ract[5,i-wd+1] = act(apA1B_1,apA1B_0)
+      ract[6,i-wd+1] = act(apA1B_0,apA1B_1)
+    
+      ract[7,i-wd+1] = 1
+      ract[8,i-wd+1] = 1
+      ract[9,i-wd+1] = act(apA0B1C_1,apA0B1C_0)
+      ract[10,i-wd+1] = act(apA0B1C_0,apA0B1C_1)
+      ract[11,i-wd+1] = act(apA1B0C_1,apA1B0C_0)
+      ract[12,i-wd+1] = act(apA1B0C_0,apA1B0C_1)
+      ract[13,i-wd+1] = 1
+      ract[14,i-wd+1] = 1
+    }
+  }
+  
+  return(ract)
+}
+
+#############################################################################################################
 
 # 2 - Related to the model creation:
 
@@ -233,6 +327,7 @@ Likelihood = function(model_out,trial,path){
 
 #############################################################################################################
 # 3.2) Computing sum of log likelihood (negative)
+
 negLogLikFunc = function(v_par,n_trial,turnData){
   
   alpha = v_par[1]
@@ -255,7 +350,6 @@ negLogLikFunc = function(v_par,n_trial,turnData){
 # 3.3) accesing the activity probabilities in the modeled data of the path chosen by the rat in the reality 
 
 get_prob_path = function(m,trial,m2){
-
   v = rep(0,3)
     
   A = m2[trial,1]
@@ -336,14 +430,106 @@ mv_avg = function(x,wd){
 }
 
 #############################################################################################################
+# 4.2) Making the plots for every path per trial
+
+plot_comparison = function(rdata,mdata){
+
+  n_trial = ncol(rdata)
+  
+  #Path with the reward:
+
+  #A1B0C1
+  r_path_A1B0C1 = rep(0,n_trial)
+  m_path_A1B0C1 = rep(0,n_trial)
+
+  for(i in 1:n_trial){
+    r_path_A1B0C1[i] = rdata["apA_1",i] * rdata["apA1B_0",i] * rdata["apA1B0C_1",i]
+    m_path_A1B0C1[i] = mdata["apA_1",i] * mdata["apA1B_0",i] * mdata["apA1B0C_1",i]
+  }
+
+  plot(r_path_A1B0C1,type='l', xlab = "Trial", ylab = "Activity Probability of following the path", main="Path_A1B0C1", ylim=c(0,1))
+  lines(m_path_A1B0C1,type='l',col='red')
+  legend(900, 0.2, legend=c("Real Behaviour", "Modeled Behaviour"),col=c("black", "red"), lty=c(1,1))
+
+
+  #Other Possibles Paths:
+
+  #A0B0
+  r_path_A0B0 = rep(0,n_trial)
+  m_path_A0B0 = rep(0,n_trial)
+
+  for(i in 1:n_trial){
+    r_path_A0B0[i] = rdata["apA_0",i] * rdata["apA0B_0",i]
+    m_path_A0B0[i] = mdata["apA_0",i] * mdata["apA0B_0",i]
+  }
+
+  plot(r_path_A0B0,type='l', xlab = "Trial", ylab = "Activity Probability of following the path", main="Path_A0B0", ylim=c(0,1))
+  lines(m_path_A0B0,type='l',col='red')
+  legend(900, 0.7, legend=c("Real Behaviour", "Modeled Behaviour"),col=c("black", "red"), lty=c(1,1))
+  
+  #A0B1C0
+  r_path_A0B1C0 = rep(0,n_trial)
+  m_path_A0B1C0 = rep(0,n_trial)
+  
+  for(i in 1:n_trial){
+    r_path_A0B1C0[i] = rdata["apA_0",i] * rdata["apA0B_1",i] * rdata["apA0B1C_0",i]
+    m_path_A0B1C0[i] = mdata["apA_0",i] * mdata["apA0B_1",i] * mdata["apA0B1C_0",i]
+  }
+  
+  plot(r_path_A0B1C0,type='l', xlab = "Trial", ylab = "Activity Probability of following the path", main="Path_A0B1C0", ylim=c(0,1))
+  lines(m_path_A0B1C0,type='l',col='red')
+  legend(900, 0.7, legend=c("Real Behaviour", "Modeled Behaviour"),col=c("black", "red"), lty=c(1,1))
+  
+  #A0B1C1
+  r_path_A0B1C1 = rep(0,n_trial)
+  m_path_A0B1C1 = rep(0,n_trial)
+  
+  for(i in 1:n_trial){
+    r_path_A0B1C1[i] = rdata["apA_0",i] * rdata["apA0B_1",i] * rdata["apA0B1C_1",i]
+    m_path_A0B1C1[i] = mdata["apA_0",i] * mdata["apA0B_1",i] * mdata["apA0B1C_1",i]
+  }
+  
+  plot(r_path_A0B1C1,type='l', xlab = "Trial", ylab = "Activity Probability of following the path", main="Path_A0B1C1", ylim=c(0,1))
+  lines(m_path_A0B1C1,type='l',col='red')
+  legend(900, 0.7, legend=c("Real Behaviour", "Modeled Behaviour"),col=c("black", "red"), lty=c(1,1))
+  
+  #A1B0C0
+  r_path_A1B0C0 = rep(0,n_trial)
+  m_path_A1B0C0 = rep(0,n_trial)
+  
+  for(i in 1:n_trial){
+    r_path_A1B0C0[i] = rdata["apA_1",i] * rdata["apA1B_0",i] * rdata["apA1B0C_0",i]
+    m_path_A1B0C0[i] = mdata["apA_1",i] * mdata["apA1B_0",i] * mdata["apA1B0C_0",i]
+  }
+  
+  plot(r_path_A1B0C0,type='l', xlab = "Trial", ylab = "Activity Probability of following the path", main="Path_A1B0C0", ylim=c(0,1))
+  lines(m_path_A1B0C0,type='l',col='red')
+  legend(900, 0.7, legend=c("Real Behaviour", "Modeled Behaviour"),col=c("black", "red"), lty=c(1,1))
+  
+  #A1B1
+  r_path_A1B1 = rep(0,n_trial)
+  m_path_A1B1 = rep(0,n_trial)
+  
+  for(i in 1:n_trial){
+    r_path_A1B1[i] = rdata["apA_1",i] * rdata["apA1B_1",i]
+    m_path_A1B1[i] = mdata["apA_1",i] * mdata["apA1B_1",i]
+  }
+  
+  plot(r_path_A1B1,type='l', xlab = "Trial", ylab = "Activity Probability of following the path", main="Path_A1B1", ylim=c(0,1))
+  lines(m_path_A1B1,type='l',col='red')
+  legend(900, 0.7, legend=c("Real Behaviour", "Modeled Behaviour"),col=c("black", "red"), lty=c(1,1))
+
+}
+#############################################################################################################
 ```
 
 ```{r}
 ######################## MODEL ##########################
 
-bhv_model = function(n_trial,learn_rate,x){
+bhv_model = function(n_trial,learn_rate,x,wd=1){
   
   set.seed(1)
+  n_trial = n_trial + wd - 1
   
   ############ maze matrix
   Value_Matrix = data.frame("Path" = c(000,001,010,011,100,101,110,111), "Reward" = c(0,0,0,0,0,1,0,0),"Interest" = c(1,1,1,1,1,x,1,1))
@@ -389,98 +575,138 @@ bhv_model = function(n_trial,learn_rate,x){
   apA1B1C_1 = 0
   apA1B1C_0 = 0
   
+  path = matrix(0,n_trial,3)
   avg_init = 0
   
-  matrix_out = matrix(0,18,n_trial)
+  matrix_out = matrix(0,18,n_trial-wd+1)
   rownames(matrix_out) = c("Path", "Reward", "Value_percep", "Expectation","apA_1", "apA_0", "apA0B_1", "apA0B_0", "apA1B_1", "apA1B_0", "apA0B0C_1", "apA0B0C_0", "apA0B1C_1", "apA0B1C_0", "apA1B0C_1", "apA1B0C_0", "apA1B1C_1", "apA1B1C_0")
-  colnames(matrix_out) = seq(1,n_trial)
 
   for (i in 1:n_trial){
   
-    ##### defining the path and counting activity
+    ##### defining the path
     A = rbinom(1,1,pA_1)
   
     if (A == 1){
-      apA_1 = apA_1 + 1
       B = rbinom(1,1,pA1B_1)
       
-        if (B == 1){
-          apA1B_1 = apA1B_1 + 1
-          C = rbinom(1,1,pA1B1C_1)
+      if (B == 1){
+        C = rbinom(1,1,pA1B1C_1)
           
-          if (C == 1){
-            apA1B1C_1 = apA1B1C_1 + 1
-          }else{
-            apA1B1C_0 = apA1B1C_0 + 1
-          }
-        }else{
-          apA1B_0 = apA1B_0 + 1
-          C = rbinom(1,1,pA1B0C_1)
+      }else{
+        C = rbinom(1,1,pA1B0C_1)
           
-          if (C == 1){
-            apA1B0C_1 = apA1B0C_1 + 1
-          }else{
-            apA1B0C_0 = apA1B0C_0 + 1
-          }
-        }
+      }
     }else{
-      apA_0 = apA_0 + 1
       B = rbinom(1,1,pA0B_1)
       
-        if (B == 1){
-          apA0B_1 = apA0B_1 + 1
-          C = rbinom(1,1,pA0B1C_1)
+      if (B == 1){
+        C = rbinom(1,1,pA0B1C_1)
           
-          if (C == 1){
-            apA0B1C_1 = apA0B1C_1 + 1
-          }else{
-            apA0B1C_0 = apA0B1C_0 + 1
-          }
-        }else{
-          apA0B_0 = apA0B_0 + 1
-          C = rbinom(1,1,pA0B0C_1)
+      }else{
+        C = rbinom(1,1,pA0B0C_1)
           
-          if (C == 1){
-            apA0B0C_1 = apA0B0C_1 + 1
-          }else{
-            apA0B0C_0 = apA0B0C_0 + 1
-          }
-        }
+      }
     }
-  
-    path = A*100 + B*10 + C
-    
+        
+    path[i,1] = A
+    path[i,2] = B
+    path[i,3] = C
+    f_path = path[i,1]*100 + path[i,2]*10 + path[i,3]
     
     ##### checking the reward earned by doing that path
-    aux = data.frame("Path" = path)
+    aux = data.frame("Path" = f_path)
     aux = suppressMessages(left_join(aux,Value_Matrix))
   
     value = aux[1,2] * rbinom(1,1,aux[1,3])
     
+    ##### couting activity
+    if (i >= wd){
+      
+      if(wd != 1){
+        apA_1 = 0
+        apA_0 = 0
+        apA0B_1 = 0
+        apA0B_0 = 0
+        apA1B_1 = 0
+        apA1B_0 = 0
+        apA0B0C_1 = 0
+        apA0B0C_0 = 0
+        apA0B1C_1 = 0
+        apA0B1C_0 = 0
+        apA1B0C_1 = 0
+        apA1B0C_0 = 0
+        apA1B1C_1 = 0
+        apA1B1C_0 = 0
+      }
+      
+      for(l in i-wd+1:wd){
+          
+        if (path[l,1] == 1){
+          apA_1 = apA_1 + 1
+      
+          if (path[l,2] == 1){
+            apA1B_1 = apA1B_1 + 1
+          
+            if (path[l,3] == 1){
+              apA1B1C_1 = apA1B1C_1 + 1
+            }else{
+              apA1B1C_0 = apA1B1C_0 + 1
+            }
+          }else{
+            apA1B_0 = apA1B_0 + 1
+          
+            if (path[l,3] == 1){
+              apA1B0C_1 = apA1B0C_1 + 1
+            }else{
+              apA1B0C_0 = apA1B0C_0 + 1
+            }
+          }
+        }else{
+          apA_0 = apA_0 + 1
+      
+          if (path[l,2] == 1){
+            apA0B_1 = apA0B_1 + 1
+          
+            if (path[l,3] == 1){
+              apA0B1C_1 = apA0B1C_1 + 1
+            }else{
+              apA0B1C_0 = apA0B1C_0 + 1
+            }
+          }else{
+            apA0B_0 = apA0B_0 + 1
+          
+            if (path[l,3] == 1){
+              apA0B0C_1 = apA0B0C_1 + 1
+            }else{
+              apA0B0C_0 = apA0B0C_0 + 1
+            }
+          }
+        }
+      }
+      
+      ##### Feeding the output matrix
+      matrix_out[1,i-wd+1] = f_path
+      matrix_out[2,i-wd+1] = aux[1,2]
+      matrix_out[3,i-wd+1] = value
+      matrix_out[4,i-wd+1] = avg_init
     
-    ##### Feeding the output matrix
-    matrix_out[1,i] = path
-    matrix_out[2,i] = aux[1,2]
-    matrix_out[3,i] = value
-    matrix_out[4,i] = avg_init
+      matrix_out[5,i-wd+1] = act(apA_1,apA_0)
+      matrix_out[6,i-wd+1] = act(apA_0,apA_1)
     
-    matrix_out[5,i] = act(apA_1,apA_0)
-    matrix_out[6,i] = act(apA_0,apA_1)
+      matrix_out[7,i-wd+1] = act(apA0B_1,apA0B_0)
+      matrix_out[8,i-wd+1] = act(apA0B_0,apA0B_1)
+      matrix_out[9,i-wd+1] = act(apA1B_1,apA1B_0)
+      matrix_out[10,i-wd+1] = act(apA1B_0,apA1B_1)
     
-    matrix_out[7,i] = act(apA0B_1,apA0B_0)
-    matrix_out[8,i] = act(apA0B_0,apA0B_1)
-    matrix_out[9,i] = act(apA1B_1,apA1B_0)
-    matrix_out[10,i] = act(apA1B_0,apA1B_1)
-    
-    matrix_out[11,i] = act(apA0B0C_1,apA0B0C_0)
-    matrix_out[12,i] = act(apA0B0C_0,apA0B0C_1)
-    matrix_out[13,i] = act(apA0B1C_1,apA0B1C_0)
-    matrix_out[14,i] = act(apA0B1C_0,apA0B1C_1)
-    matrix_out[15,i] = act(apA1B0C_1,apA1B0C_0)
-    matrix_out[16,i] = act(apA1B0C_0,apA1B0C_1)
-    matrix_out[17,i] = act(apA1B1C_1,apA1B1C_0)
-    matrix_out[18,i] = act(apA1B1C_0,apA1B1C_1)
-    
+      matrix_out[11,i-wd+1] = act(apA0B0C_1,apA0B0C_0)
+      matrix_out[12,i-wd+1] = act(apA0B0C_0,apA0B0C_1)
+      matrix_out[13,i-wd+1] = act(apA0B1C_1,apA0B1C_0)
+      matrix_out[14,i-wd+1] = act(apA0B1C_0,apA0B1C_1)
+      matrix_out[15,i-wd+1] = act(apA1B0C_1,apA1B0C_0)
+      matrix_out[16,i-wd+1] = act(apA1B0C_0,apA1B0C_1)
+      matrix_out[17,i-wd+1] = act(apA1B1C_1,apA1B1C_0)
+      matrix_out[18,i-wd+1] = act(apA1B1C_0,apA1B1C_1)
+    }
     
     ##### atualizing the probabilities of choosing the path
     if(value >= avg_init){
@@ -533,7 +759,6 @@ bhv_model = function(n_trial,learn_rate,x){
     }
   }
   
-  #matrix_out[is.na(matrix_out)] = 1
   return(matrix_out)
 }
 ```
@@ -542,31 +767,49 @@ bhv_model = function(n_trial,learn_rate,x){
 ############# MODELING RAT BEHAVIOUR #################  
 
 n = length(turnData[,6])
-
+avg_wd = 30
 
 # Extracting informating from the "real" data
-rewards_per_trial = rwd_per_trial(n,turnData)
-time_per_trial = tm_per_trial(n,turnData)
+r_path = real_path(turnData)
+r_activity = real_activity(r_path,avg_wd)
 
-n_trial = length(rewards_per_trial)
+n_trial = ncol(r_activity)
+learn_rate = 0.1
+x = 0.8
 
-# Finding the optimized parameters
-set.seed(1)
-out = DEoptim(negLogLikFunc,lower=c(0,0),upper=c(1,1),n_trial=n_trial,turnData=turnData,
-              DEoptim.control(itermax = 50))
+# Generating a model
+model_out = bhv_model(n_trial,learn_rate,x,avg_wd)
 
-learn_rate = out$optim$bestmem[1]
-x = out$optim$bestmem[2]
-
-# Generating the optimized model
-model_out = bhv_model(n_trial,learn_rate,x)
+#plotting the activity for every path per trial
+plot_comparison(r_activity,model_out)
 
 ```
 
 ```{r}
+############# PARAMETERS OPTIMIZATION #################  
+
+# Finding the optimized parameters
+set.seed(1)
+out = DEoptim(negLogLikFunc,lower=c(0,0),upper=c(1,1),n_trial=n_trial,turnData=turnData,
+              DEoptim.control(itermax = 5))
+
+learn_rate = out$optim$bestmem[1]
+x = out$optim$bestmem[2]
+
+```
+
+```{r}
+############# RAT BEHAVIOUR OPTIMIZED ################# 
+
+# Generating the optimized model
+model_out_opt = bhv_model(n_trial,learn_rate,x)
+
+
 ############# BEHAVIOUR COMPARISON ################# 
 
-avg_wd = 30
+# Extracting informating from the "real" data
+rewards_per_trial = rwd_per_trial(n,turnData)
+time_per_trial = tm_per_trial(n,turnData)
 
 mean_rewards = mv_avg(rewards_per_trial,avg_wd)
 mean_time = mv_avg(time_per_trial,avg_wd)
@@ -576,78 +819,12 @@ opt_model_prob = rep(0,n_trial)
 r_path = real_path(turnData)
 
 for(i in 1:n_trial){
-  opt_model_prob[i] = Likelihood(model_out,i,r_path)
+  opt_model_prob[i] = Likelihood(model_out_opt,i,r_path)
 }
 
 mean_rewards_model = mv_avg(opt_model_prob,avg_wd)
-plot(mean_rewards,type='l', xlab = "Trial", ylab = "Frequency of obtaining the Reward", main="Rat Behaviour")
+plot(mean_rewards,type='l', xlab = "Trial", ylab = "Activity Probability of following the path", main="Path_A1B0C1")
 lines(mean_rewards_model,type='l',col='red')
 legend(900, 0.2, legend=c("Real Behaviour", "Modeled Behaviour"),col=c("black", "red"), lty=c(1,1))
 ```
 
-```{r}
-############# ACTIVITY PROBABILITY PER TRIAL FOR EVERY PATH ################# 
-
-#Possibles Paths:
-
-#A0B0
-path_A0B0 = rep(0,n_trial)
-
-for(i in 1:n_trial){
-  path_A0B0[i] = model_out["apA_0",i] * model_out["apA0B_0",i]
-}
-
-#path_A0B0 = mv_avg(path_A0B0,avg_wd)
-plot(path_A0B0, type='l', ylim=c(0,1), ylab="Probability of following the path", xlab="Trial", main="Path_A0B0")
-
-#A0B1C0
-path_A0B1C0 = rep(0,n_trial)
-
-for(i in 1:n_trial){
-  path_A0B1C0[i] = model_out["apA_0",i] * model_out["apA0B_1",i] * model_out["apA0B1C_0",i]
-}
-
-#path_A0B1C0 = mv_avg(path_A0B1C0,avg_wd)
-plot(path_A0B1C0, type ='l', ylim=c(0,1), ylab="Probability of following the path", xlab="Trial", main="Path_A0B1C0")
-
-#A0B1C1
-path_A0B1C1 = rep(0,n_trial)
-
-for(i in 1:n_trial){
-  path_A0B1C1[i] = model_out["apA_0",i] * model_out["apA0B_1",i] * model_out["apA0B1C_1",i]
-}
-
-#path_A0B1C1 = mv_avg(path_A0B1C1,avg_wd)
-plot(path_A0B1C1, type ='l', ylim=c(0,1), ylab="Probability of following the path", xlab="Trial", main="Path_A0B1C1")
-
-#A1B0C0
-path_A1B0C0 = rep(0,n_trial)
-
-for(i in 1:n_trial){
-  path_A1B0C0[i] = model_out["apA_1",i] * model_out["apA1B_0",i] * model_out["apA1B0C_0",i]
-}
-
-path_A1B0C0 = mv_avg(path_A1B0C0,avg_wd)
-plot(path_A1B0C0, type ='l', ylim=c(0,1), ylab="Probability of following the path", xlab="Trial", main="Path_A1B0C0")
-
-#A1B0C1
-path_A1B0C1 = rep(0,n_trial)
-
-for(i in 1:n_trial){
-  path_A1B0C1[i] = model_out["apA_1",i] * model_out["apA1B_0",i] * model_out["apA1B0C_1",i]
-}
-
-#path_A1B0C1 = mv_avg(path_A1B0C1,avg_wd)
-plot(path_A1B0C1, type ='l', ylim=c(0,1), ylab="Probability of following the path", xlab="Trial", main="Path_A1B0C1")
-
-#A1B1
-path_A1B1 = rep(0,n_trial)
-
-for(i in 1:n_trial){
-  path_A1B1[i] = model_out["apA_1",i] * model_out["apA1B_1",i]
-}
-
-#path_A1B1 = mv_avg(path_A1B1,avg_wd)
-plot(path_A1B1, type ='l', ylim=c(0,1), ylab="Probability of following the path", xlab="Trial", main="Path_A1B1")
-
-```
